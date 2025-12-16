@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  
+  
+  
+
+  <title>Inline Web Worker</title>
+
+    <link rel="canonical" href="https://codepen.io/vpelss/pen/OPNdOPE">
+  
+  
+  
+  
+
+  
+  
+  
+</head>
+
+<body>
+  <p>Two ways to create an Inline Web Worker</p>
+<p>Normaly Web Worker code is saved it an separate file and imported as src. Sometimes this is not desired or possible. Eg: Codepen</p>
+<p>Web Workers alow you to run long running code in a separate thread from the web page thread so your JS code won't block the web page interactions.</p>
+
+<button id="gogogo" type="button" value="Go Go Go">Go Go Go</button>
+
+<div id="message"></div>
+
+<script id="webWorkerOnHTML" type="javascript/worker">
+  onmessage = function(event) {
+      var input = event.data;
+      //var input = JSON.parse(txt);
+      LongHardCalculations(input);
+    };
+  
+    function LongHardCalculations(input) {
+      let msg = input.msg;
+      let opMsg = {};
+     for (a = 0;a < 100000;a++){
+       if(a%1000 == 0){
+         opMsg.msg = "From HTML web worker: We have counted up to: " + a + "</br>";
+       postMessage(opMsg);
+       }
+     }
+      opMsg.msg = 'From HTML web worker: We are done counting:' + a + '</br>' + 'From HTML web worker: Returning message the Web Worker was sent:' + msg + '</br>';
+      postMessage(opMsg);   
+    }
+  
+  </script>
+  
+    <script id="rendered-js" >
+//set html events
+let run_forest = document.getElementById("gogogo");
+run_forest.onclick = RunForestRun;
+
+//inline worker stored in HTML page
+//convert HTML code to blob
+var blob = new Blob([document.querySelector("#webWorkerOnHTML").textContent], {
+  type: "text/javascript"
+});
+
+let webworkerHTML;
+if (webworkerHTML) {
+  //if it is running, shut it down. Our human master has requested a new run
+  webworkerHTML.terminate();
+} else {
+  //get blob URL
+  let blobURL = window.URL.createObjectURL(blob);
+  //create web worker from blob url
+  webworkerHTML = new Worker(blobURL);
+
+  //watch for messages from webworker
+  webworkerHTML.onmessage = function (event) {
+    let op = event.data;
+    let msgFromWebWorker = op.msg;
+    document.getElementById("message").innerHTML =
+      document.getElementById("message").innerHTML + msgFromWebWorker;
+  };
+}
+
+//inline web worker stored with JS in a single function containing nested functions
+//create the web worker Blob and return the Blob URL
+let webworkerurl = fn2workerURL(function_containing_webworker);
+
+let webworkerJS;
+if (webworkerJS) {
+  //if it is running, shut it down. Our human master has requested a new run
+  webworkerJS.terminate();
+} else {
+  //create web worker from JS blob URL
+  webworkerJS = new Worker(webworkerurl);
+
+  //watch for messages from webworker
+  webworkerJS.onmessage = function (event) {
+    let op = event.data;
+    let msgFromWebWorker = op.msg;
+    document.getElementById("message").innerHTML =
+      document.getElementById("message").innerHTML + msgFromWebWorker;
+  };
+}
+
+//WEB WORKER CODE stored in a single function containing nested functions
+function function_containing_webworker() {
+  
+  //this stops codepen from checking for infinite looks here. So be careful!
+  const window = {
+  CP: {
+    shouldStopExecution: () => false,
+    exitedLoop: () => false
+  }
+};
+  
+  onmessage = function (event) {
+    var input = event.data;
+    //var input = JSON.parse(txt);
+    LongHardCalculations2(input);
+  };
+  function LongHardCalculations2(input) {
+    let msg = input.msg;
+    let opMsg = {};
+    let a;
+
+    for (a = 0; a < 100000; a++) {
+      if (a % 1000 == 0) {
+        opMsg.msg = "From JS web worker: We have counted up to: " + a + "</br>";
+        postMessage(opMsg);
+      }
+    }
+
+    opMsg.msg =
+      "From JS web worker: We are done counting:" +
+      a +
+      "</br>" +
+      "From JS web worker:  Returning message the Web Worker was sent:" +
+      msg +
+      "</br>";
+    postMessage(opMsg);
+  }
+}
+
+function fn2workerURL(fn) {
+  const blob = new Blob([`(${fn.toString()})()`], { type: "text/javascript" });
+  return URL.createObjectURL(blob);
+}
+
+function RunForestRun() {
+  document.getElementById("message").innerHTML = "";
+  //start webworker
+  let input = {
+    msg: "Mesage sent to webworker",
+    otherData: 42
+  };
+  //send data to HTML webworker
+  webworkerHTML.postMessage(input);
+  //send data to JS webworker
+  webworkerJS.postMessage(input);
+}
+  </script>
+
+  
+</body>
+
+</html>
